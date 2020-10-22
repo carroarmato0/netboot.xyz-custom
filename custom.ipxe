@@ -3,9 +3,32 @@
 # Ubuntu Operating System
 # https://www.ubuntu.com
 
-goto ${menu}
+:start
+chain --autofree boot.cfg ||
+echo Attempting to retrieve latest upstream version number...
+chain --timeout 5000 https://boot.netboot.xyz/version.ipxe ||
+ntp 0.pool.ntp.org ||
+iseq ${cls} serial && goto ignore_cls ||
+set cls:hex 1b:5b:4a  # ANSI clear screen sequence - "^[[J"
+set cls ${cls:string}
+:ignore_cls
 
-:ubuntu
+
+isset ${arch} && goto skip_arch_detect ||
+cpuid --ext 29 && set arch x86_64 || set arch i386
+iseq ${buildarch} arm64 && set arch arm64 ||
+:skip_arch_detect
+isset ${menu} && goto ${menu} ||
+
+isset ${ip} || dhcp || echo DHCP failed
+
+:main_menu
+clear menu
+set space:hex 20:20
+set space ${space:string}
+iseq ${arch} x86_64 && set arch_a amd64 || set arch_a ${arch}
+menu ${site_name}
+
 set os Ubuntu
 clear ubuntu_version
 menu ${os} - ${arch_a}
